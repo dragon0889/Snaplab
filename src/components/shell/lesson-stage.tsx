@@ -25,7 +25,7 @@ import { Lesson17Sim } from "@/components/simulations/Lesson17Sim";
 import { Lesson18Sim } from "@/components/simulations/Lesson18Sim";
 import { Lesson19Sim } from "@/components/simulations/Lesson19Sim";
 import type { SerializedWorkspace } from "@/lib/blockly/interpreter";
-import { hasLegoModel } from "@/lib/lesson-steps";
+import { usesLegacyViewer } from "@/lib/lesson-steps";
 import type { ComponentType } from "react";
 import { PortDiagram } from "@/components/hardware/PortDiagram";
 
@@ -124,8 +124,8 @@ const BLOCK_SIMS: Record<string, { type: SimulationType; Component: ComponentTyp
 /** Simulations already rebuilt on `ViewportChrome` (they draw their own stage). The rest are wrapped for now. */
 const OWN_CHROME = new Set(["lesson-11"]);
 
-/** Only Lesson 5 has dedicated simulation and 3D builds so far. */
-const HAS_BARRIER_BUILD = hasLegoModel;
+/** Only Lesson 5 has a dedicated simulation (the barrier) so far. */
+const HAS_BARRIER_SIM = (lesson: LessonConfig) => lesson.id === "lesson-05";
 
 export interface LessonStageProps {
   lesson: LessonConfig;
@@ -160,16 +160,17 @@ export function LessonStage({ lesson, step, onSimResult, onSimTelemetry, onSimRu
         const sim = <Component program={step === "intro" ? null : program} onTelemetry={onSimTelemetry} onRunStart={onSimRunStart} />;
         return lesson.simulationType === "r3f-3d" ? guard(sim) : sim;
       }
-      if (HAS_BARRIER_BUILD(lesson)) {
+      if (HAS_BARRIER_SIM(lesson)) {
         return <MatterSimulation onResult={onSimResult} onTelemetry={onSimTelemetry} onRunStart={onSimRunStart} />;
       }
       return <ComingSoon title={SIM_LABEL[lesson.simulationType]} note="Mô phỏng của bài này đang được xây dựng. Con vẫn có thể nối dây và ghép khối lệnh nhé!" />;
     }
     if (step === "lego3d") {
-      return HAS_BARRIER_BUILD(lesson) ? (
+      // Lessons with an `assembly` get the LDraw viewer in phase L2; until then only lesson 5 has the old viewer.
+      return usesLegacyViewer(lesson) ? (
         guard(<LegoViewer3D onStepChange={onLegoStep} />)
       ) : (
-        <ComingSoon title="Lắp ráp LEGO 3D" note={`Mô hình ${lesson.legoStepCount ?? "?"} bước của bài này đang được xây dựng.`} />
+        <ComingSoon title="Lắp ráp 3D" note={`Mô hình ${lesson.legoStepCount ?? "?"} bước của bài này đang được xây dựng.`} />
       );
     }
     if (step === "wiring") return <PortDiagram ports={lesson.hardwarePorts} />;

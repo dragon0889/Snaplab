@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { getLessonById } from "@/lib/lessons-data/curriculum";
-import { getSteps, hasLegoModel, parseStep, stepStatus, type StepProgress } from "../lesson-steps";
+import { getSteps, hasLegoModel, parseStep, stepStatus, usesLegacyViewer, type StepProgress } from "../lesson-steps";
 
 const lesson = (id: string) => {
   const found = getLessonById(id);
@@ -72,6 +72,33 @@ describe("stepStatus: each step ticks only for its own condition (A3)", () => {
     expect(stepStatus("blockly", LESSON_11, visitedAll)).toBe("todo");
     expect(stepStatus("sim", LESSON_11, visitedAll)).toBe("todo");
     expect(stepStatus("lego3d", LESSON_5, visitedAll)).toBe("todo");
+  });
+});
+
+describe("hasLegoModel reads the lesson's assembly (L0)", () => {
+  const ASSEMBLY = { model: "/models/lesson-11.mpd", steps: "/models/lesson-11.steps.json" };
+
+  it("a lesson with an assembly has a 3D model", () => {
+    expect(hasLegoModel({ id: "lesson-11", assembly: ASSEMBLY })).toBe(true);
+    expect(usesLegacyViewer({ id: "lesson-11" })).toBe(false);
+  });
+
+  it("a lesson without an assembly has none, unless it still uses the old hand-built viewer", () => {
+    expect(hasLegoModel({ id: "lesson-11" })).toBe(false);
+    expect(hasLegoModel({ id: "lesson-05" })).toBe(true); // legacy viewer, until its LDraw model exists
+    expect(usesLegacyViewer({ id: "lesson-05" })).toBe(true);
+  });
+
+  it("an assembly makes the 3D step tickable at its last step instead of 'soon'", () => {
+    const withModel = { id: "lesson-11", legoStepCount: 5, assembly: ASSEMBLY };
+    expect(stepStatus("lego3d", withModel, NOTHING)).toBe("todo");
+    expect(stepStatus("lego3d", withModel, progress({ legoStepReached: 4 }))).toBe("todo");
+    expect(stepStatus("lego3d", withModel, progress({ legoStepReached: 5 }))).toBe("done");
+  });
+
+  it("no lesson ships an assembly yet, so the real 3D steps are exactly the legacy ones", () => {
+    expect(LESSON_11.assembly).toBeUndefined();
+    expect(LESSON_5.assembly).toBeUndefined();
   });
 });
 

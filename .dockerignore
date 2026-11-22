@@ -11,3 +11,5 @@ Dockerfile
 docker-compose.yml
 Caddyfile
 deploy-vps.sh
+vendor
+assets-src

@@ -41,7 +41,7 @@ function LessonCard({ lesson }: { lesson: LessonConfig }) {
         <span className="mt-auto flex items-center gap-3 pt-2 text-xs font-bold text-ink/60">
           <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" aria-hidden /> {lesson.estimatedMinutes} phút</span>
           {lesson.requiresLegoAssembly && (
-            <span className="flex items-center gap-1"><Box className="h-3.5 w-3.5" aria-hidden /> LEGO · {lesson.legoStepCount} bước</span>
+            <span className="flex items-center gap-1"><Box className="h-3.5 w-3.5" aria-hidden /> Khối lắp ghép · {lesson.legoStepCount} bước</span>
           )}
         </span>
       </Link>
@@ -80,6 +80,12 @@ export default function LessonsPage() {
           );
         })}
       </div>
+
+      <footer className="mt-10 border-t border-line pt-4 text-sm text-ink-soft">
+        <Link href="/giay-phep" className="font-bold underline-offset-2 hover:underline">
+          Giấy phép &amp; ghi công
+        </Link>
+      </footer>
     </div>
   );
 }

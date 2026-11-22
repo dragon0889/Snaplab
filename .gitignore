@@ -12,3 +12,6 @@ next-env.d.ts
 
 # Generated screenshots
 shots/
+
+# Official LDraw parts library (large, downloaded by the designer; see docs/ldraw-pipeline.md)
+vendor/ldraw/

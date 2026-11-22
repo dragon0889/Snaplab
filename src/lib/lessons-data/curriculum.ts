@@ -73,6 +73,14 @@ export interface AiTutorConfig {
   commonMistakes: CommonMistakeHint[];
 }
 
+/** A packed LDraw model for the "Lắp 3D" step (see docs/ldraw-pipeline.md). Both URLs are served from `public/`. */
+export interface AssemblyConfig {
+  /** e.g. "/models/lesson-05.mpd" */
+  model: string;
+  /** e.g. "/models/lesson-05.steps.json" (its `stepCount` must equal `legoStepCount`) */
+  steps: string;
+}
+
 export interface LessonConfig {
   id: string;
   lessonNumber: number;
@@ -85,6 +93,8 @@ export interface LessonConfig {
   simulationType: SimulationType;
   requiresLegoAssembly: boolean;
   legoStepCount?: number;
+  /** Present once the lesson has an LDraw build model; until then the 3D step is "coming soon". */
+  assembly?: AssemblyConfig;
   hardwarePorts: PortMapping[];
   defaultBlocklyBlocks: string[];
   winCondition: WinCondition;
@@ -367,9 +377,9 @@ export const SNAPLAB_CURRICULUM: LessonConfig[] = [
     id: 'lesson-05',
     lessonNumber: 5,
     level: 2,
-    levelTitleVi: 'Cấp độ 2: Cơ khí chuyển động LEGO & Servo',
+    levelTitleVi: 'Cấp độ 2: Cơ khí chuyển động khối lắp ghép & Servo',
     titleVi: 'Trạm thu phí không dừng (Smart Barrier)',
-    subtitleVi: 'Lắp ráp thanh chắn LEGO tự động mở khi phát hiện xe tiến lại gần',
+    subtitleVi: 'Lắp ráp thanh chắn khối lắp ghép tự động mở khi phát hiện xe tiến lại gần',
     estimatedMinutes: 30,
     steamConceptsVi: ['Góc quay động cơ Servo (0°–180°)', 'Cảm biến tiệm cận', 'Lắp ráp khớp nối ngàm 3D'],
     simulationType: 'matter-2d',
@@ -407,7 +417,7 @@ export const SNAPLAB_CURRICULUM: LessonConfig[] = [
       targetValue: ['DETECT_CAR_LT_15', 'SERVO_90', 'WAIT_3S', 'SERVO_0'],
     },
     aiTutor: {
-      initialGreetingVi: 'Chào kỹ sư! Hãy xoay mô hình LEGO 3D bên trái để xem cách gắn ngàm Servo vào thanh dầm trước khi nạp code nhé!',
+      initialGreetingVi: 'Chào kỹ sư! Hãy xoay mô hình 3D bên trái để xem cách gắn ngàm Servo vào thanh dầm trước khi nạp code nhé!',
       socraticSystemPrompt:
         'Bạn là Gia sư AI SnapLab hướng dẫn Bài 5: Trạm thu phí không dừng. Giúp học sinh tự phát hiện lỗi thiếu thời gian chờ (Wait) hoặc góc quay ngược chiều. Ngắn gọn, khích lệ.',
       commonMistakes: [
@@ -426,9 +436,9 @@ export const SNAPLAB_CURRICULUM: LessonConfig[] = [
     id: 'lesson-06',
     lessonNumber: 6,
     level: 2,
-    levelTitleVi: 'Cấp độ 2: Cơ khí chuyển động LEGO & Servo',
+    levelTitleVi: 'Cấp độ 2: Cơ khí chuyển động khối lắp ghép & Servo',
     titleVi: 'Thùng rác thông minh tự mở nắp',
-    subtitleVi: 'Ứng dụng cơ cấu tay đòn LEGO và chuyển động mượt (Easing) không gây tiếng ồn',
+    subtitleVi: 'Ứng dụng cơ cấu tay đòn khối lắp ghép và chuyển động mượt (Easing) không gây tiếng ồn',
     estimatedMinutes: 30,
     steamConceptsVi: ['Cơ cấu tay đòn (Lever Mechanism)', 'Chuyển động mượt (Easing Loop)', 'Tự động hóa vệ sinh'],
     simulationType: 'matter-2d',
@@ -474,7 +484,7 @@ export const SNAPLAB_CURRICULUM: LessonConfig[] = [
     id: 'lesson-07',
     lessonNumber: 7,
     level: 2,
-    levelTitleVi: 'Cấp độ 2: Cơ khí chuyển động LEGO & Servo',
+    levelTitleVi: 'Cấp độ 2: Cơ khí chuyển động khối lắp ghép & Servo',
     titleVi: 'Cánh tay Robot gắp vật 2 bậc tự do',
     subtitleVi: 'Điều khiển đồng bộ 2 động cơ Servo và truyền động bánh răng kẹp đồ vật',
     estimatedMinutes: 35,
@@ -522,7 +532,7 @@ export const SNAPLAB_CURRICULUM: LessonConfig[] = [
     id: 'lesson-08',
     lessonNumber: 8,
     level: 2,
-    levelTitleVi: 'Cấp độ 2: Cơ khí chuyển động LEGO & Servo',
+    levelTitleVi: 'Cấp độ 2: Cơ khí chuyển động khối lắp ghép & Servo',
     titleVi: 'Quạt thông minh tự điều tốc & Đảo gió',
     subtitleVi: 'Điều khiển tốc độ cánh quạt theo nhiệt độ phòng bằng xung PWM',
     estimatedMinutes: 35,
@@ -534,7 +544,7 @@ export const SNAPLAB_CURRICULUM: LessonConfig[] = [
       {
         port: 'MOTOR-A',
         component: 'dc_motor_tt',
-        labelVi: 'Động cơ DC gắn cánh quạt LEGO',
+        labelVi: 'Động cơ DC gắn cánh quạt khối lắp ghép',
         cableType: 'Motor-2Pin',
         pinInfo: { esp32: 'GPIO 18, GPIO 19', microbit: 'Motor CH-A' },
       },
@@ -577,9 +587,9 @@ export const SNAPLAB_CURRICULUM: LessonConfig[] = [
     id: 'lesson-09',
     lessonNumber: 9,
     level: 2,
-    levelTitleVi: 'Cấp độ 2: Cơ khí chuyển động LEGO & Servo',
+    levelTitleVi: 'Cấp độ 2: Cơ khí chuyển động khối lắp ghép & Servo',
     titleVi: 'Rèm cửa tự động đón nắng',
-    subtitleVi: 'Khuếch đại góc quay bằng hệ bánh răng LEGO tỷ số truyền 1:5',
+    subtitleVi: 'Khuếch đại góc quay bằng hệ bánh răng khối lắp ghép tỷ số truyền 1:5',
     estimatedMinutes: 35,
     steamConceptsVi: ['Tỷ số truyền bánh răng (Gear Ratio)', 'Mô-men xoắn & Tốc độ góc', 'Tiết kiệm năng lượng nhà thông minh'],
     simulationType: 'matter-2d',
@@ -612,7 +622,7 @@ export const SNAPLAB_CURRICULUM: LessonConfig[] = [
     aiTutor: {
       initialGreetingVi: 'Quan sát bánh răng nhỏ (8 răng) và bánh răng lớn (40 răng) trong mô phỏng 2D: bánh nhỏ quay mấy vòng thì bánh lớn quay được 1 vòng nhỉ?',
       socraticSystemPrompt:
-        'Bạn là Gia sư AI SnapLab hướng dẫn Bài 9: Rèm cửa tự động. Giúp học sinh tính tỷ số truyền bánh răng LEGO và thiết lập hai ngưỡng sáng/tối chống nhiễu (Hysteresis).',
+        'Bạn là Gia sư AI SnapLab hướng dẫn Bài 9: Rèm cửa tự động. Giúp học sinh tính tỷ số truyền bánh răng khối lắp ghép và thiết lập hai ngưỡng sáng/tối chống nhiễu (Hysteresis).',
       commonMistakes: [
         {
           conditionCode: 'FLICKER_THRESHOLD',
@@ -625,9 +635,9 @@ export const SNAPLAB_CURRICULUM: LessonConfig[] = [
     id: 'lesson-16',
     lessonNumber: 16,
     level: 2,
-    levelTitleVi: 'Cấp độ 2: Cơ khí chuyển động LEGO & Servo',
+    levelTitleVi: 'Cấp độ 2: Cơ khí chuyển động khối lắp ghép & Servo',
     titleVi: 'Radar canh gác xoay quét',
-    subtitleVi: 'Gắn cảm biến siêu âm lên bệ xoay LEGO, quét 180° để tìm "kẻ lạ" và bật đèn báo động',
+    subtitleVi: 'Gắn cảm biến siêu âm lên bệ xoay khối lắp ghép, quét 180° để tìm "kẻ lạ" và bật đèn báo động',
     estimatedMinutes: 35,
     steamConceptsVi: ['Vòng lặp đếm góc (Sweep Loop)', 'Chùm tia hẹp & bước quét', 'Góc và khoảng cách (tọa độ cực)'],
     simulationType: 'svg-sonar',
@@ -695,9 +705,9 @@ export const SNAPLAB_CURRICULUM: LessonConfig[] = [
     id: 'lesson-17',
     lessonNumber: 17,
     level: 2,
-    levelTitleVi: 'Cấp độ 2: Cơ khí chuyển động LEGO & Servo',
+    levelTitleVi: 'Cấp độ 2: Cơ khí chuyển động khối lắp ghép & Servo',
     titleVi: 'Máy phát kẹo bằng cơ cấu cam',
-    subtitleVi: 'Dùng cam LEGO biến chuyển động xoay của Servo thành cú đẩy thẳng, mỗi lần chỉ nhả đúng 1 viên kẹo',
+    subtitleVi: 'Dùng cam khối lắp ghép biến chuyển động xoay của Servo thành cú đẩy thẳng, mỗi lần chỉ nhả đúng 1 viên kẹo',
     estimatedMinutes: 35,
     steamConceptsVi: ['Cơ cấu cam – cần đẩy (Cam & Follower)', 'Biến chuyển động xoay thành tịnh tiến', 'Chống nhận lặp (Debounce)'],
     simulationType: 'matter-2d',
@@ -763,7 +773,7 @@ export const SNAPLAB_CURRICULUM: LessonConfig[] = [
     level: 3,
     levelTitleVi: 'Cấp độ 3: Robotics & Xe tự hành',
     titleVi: 'Xe điều khiển qua trình duyệt (Web Gamepad)',
-    subtitleVi: 'Chế tạo khung xe LEGO 2 bánh chủ động và điều khiển không dây qua WebBluetooth',
+    subtitleVi: 'Chế tạo khung xe khối lắp ghép 2 bánh chủ động và điều khiển không dây qua WebBluetooth',
     estimatedMinutes: 40,
     steamConceptsVi: ['Lái vi sai 2 bánh (Differential Drive)', 'Đóng gói hàm (Functions)', 'Giao tiếp không dây Bluetooth'],
     simulationType: 'ui-motion',
@@ -952,7 +962,7 @@ export const SNAPLAB_CURRICULUM: LessonConfig[] = [
       {
         port: 'SERVO-1',
         component: 'servo_sg90',
-        labelVi: 'Servo 1: Nâng/hạ gầu xúc LEGO phía trước',
+        labelVi: 'Servo 1: Nâng/hạ gầu xúc khối lắp ghép phía trước',
         cableType: 'Servo-3Pin',
         pinInfo: { esp32: 'GPIO 10', microbit: 'P15' },
       },

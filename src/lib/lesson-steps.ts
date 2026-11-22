@@ -31,15 +31,25 @@ export function parseStep(value: string | null | undefined): WorkspaceTab | null
   return STEP_IDS.find((id) => id === value) ?? null;
 }
 
-/** Only Lesson 5 has a real 3D build so far; for the others the 3D step is a "coming soon" placeholder. */
-export function hasLegoModel(lesson: Pick<LessonConfig, "id">): boolean {
-  return lesson.id === "lesson-05";
+/**
+ * Lessons that still use the hand-built 3D viewer (`LegoViewer3D`) because their LDraw model is not ready.
+ * Remove a lesson from this list once it has an `assembly`; delete the viewer when the list is empty.
+ */
+const LEGACY_VIEWER_LESSONS: ReadonlySet<string> = new Set(["lesson-05"]);
+
+export function usesLegacyViewer(lesson: Pick<LessonConfig, "id">): boolean {
+  return LEGACY_VIEWER_LESSONS.has(lesson.id);
+}
+
+/** True when the 3D step has real content (an LDraw model, or the old hand-built viewer); otherwise it is "coming soon". */
+export function hasLegoModel(lesson: Pick<LessonConfig, "id" | "assembly">): boolean {
+  return Boolean(lesson.assembly) || usesLegacyViewer(lesson);
 }
 
 /** What the student has actually done so far; each step reads only its own part. */
 export interface StepProgress {
   visited: ReadonlySet<WorkspaceTab>;
-  /** Furthest LEGO build step reached (0 = none). */
+  /** Furthest build step reached in the 3D assembly (0 = none). */
   legoStepReached: number;
   /** The student pressed "Con đã nối xong". */
   wiringConfirmed: boolean;
@@ -53,7 +63,7 @@ export interface StepProgress {
 /** `soon`: the step exists but its content does not yet, so it can never be ticked. */
 export type StepStatus = "done" | "todo" | "soon";
 
-export function stepStatus(step: WorkspaceTab, lesson: Pick<LessonConfig, "id" | "legoStepCount">, p: StepProgress): StepStatus {
+export function stepStatus(step: WorkspaceTab, lesson: Pick<LessonConfig, "id" | "legoStepCount" | "assembly">, p: StepProgress): StepStatus {
   switch (step) {
     case "intro":
       return p.visited.has("intro") ? "done" : "todo";
