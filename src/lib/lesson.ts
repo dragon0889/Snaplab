@@ -1,6 +1,7 @@
 /** State of the student's work, shared by the UI and the /api/tutor route. */
 
-export type WorkspaceTab = "sim" | "lego3d" | "wiring" | "blockly";
+/** The lesson steps, in the order students meet them (`intro` first, `sim` last). */
+export type WorkspaceTab = "intro" | "lego3d" | "wiring" | "blockly" | "sim";
 
 export interface BlockParam {
   type: string;

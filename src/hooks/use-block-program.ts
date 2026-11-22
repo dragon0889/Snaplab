@@ -5,6 +5,7 @@ import {
   countBlocks, createOutputs, execute, executeEvent, extractStacks, hasEventHandler, type EventKind,
   type Inputs, type Outputs, type SerializedWorkspace,
 } from "@/lib/blockly/interpreter";
+import { useSimRunChannel } from "./use-sim-run";
 
 export interface UseBlockProgram {
   running: boolean;
@@ -42,6 +43,10 @@ export function useBlockProgram(options: {
   const onStartRef = useRef(options.onStart);
   onStartRef.current = options.onStart;
 
+  const channel = useSimRunChannel();
+  const channelRef = useRef(channel);
+  channelRef.current = channel;
+
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [version, setVersion] = useState(0);
@@ -73,7 +78,10 @@ export function useBlockProgram(options: {
     stop();
     setError(null);
     onStartRef.current?.();
-    const stacks = countBlocks(studentStacks) === 0 ? extractStacks(demo) : studentStacks;
+    const demoRun = countBlocks(studentStacks) === 0;
+    // Frames from the sample program are shown but never graded (see `isGradedFrame`).
+    channelRef.current?.reportRun(demoRun ? "demo" : "student");
+    const stacks = demoRun ? extractStacks(demo) : studentStacks;
     const out = createOutputs();
     outputsRef.current = out;
     const gen = execute(stacks, { inputs: () => getInputsRef.current(), out, now: () => Date.now(), changed: bump });
@@ -100,6 +108,9 @@ export function useBlockProgram(options: {
     step();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [program, demo, stop, bump]);
+
+  // The lesson page may stop this program (e.g. once the lesson is passed).
+  useEffect(() => channelRef.current?.registerStopper(stop), [stop]);
 
   const handlerGens = useRef(new Set<Generator<number, void>>());
   const handlerTimers = useRef(new Set<ReturnType<typeof setTimeout>>());

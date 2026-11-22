@@ -17,6 +17,6 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  // The gate page, its login endpoint, the health check and Next's static files stay public.
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|beta|api/beta|api/health).*)"],
+  // The gate page, its login endpoint, the health check, Blockly icons and Next static files stay public.
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|blockly-media|beta|api/beta|api/health).*)"],
 };

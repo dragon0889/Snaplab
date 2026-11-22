@@ -10,11 +10,18 @@ export type ConnectionStatus =
 export const BAUD_RATES = [115200, 9600] as const;
 export type BaudRate = (typeof BAUD_RATES)[number];
 
+/**
+ * Where a frame came from. Only `demo` frames are ignored by the lesson evaluator: they show what the sample
+ * program does, but must not count as the student's work. A frame without a source (a real board) is graded.
+ */
+export type FrameSource = "demo" | "student" | "hardware";
+
 /** A parsed telemetry frame, e.g. {"device":"esp32","ultrasonic_cm":24.5}. */
 export interface TelemetryFrame {
   id: number;
   receivedAt: number;
   raw: string;
+  source?: FrameSource;
   /** Parsed JSON object, or null when the line is a raw (non-JSON) stream line. */
   data: Record<string, unknown> | null;
 }

@@ -9,3 +9,6 @@ next-env.d.ts
 
 # Local-only
 .claude/settings.local.json
+
+# Generated screenshots
+shots/

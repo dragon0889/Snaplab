@@ -1,15 +1,18 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import Matter from "matter-js";
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, RotateCcw, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { StatTile } from "@/components/ui/stat-tile";
+import { ViewportChrome } from "@/components/ui/viewport-chrome";
 import { useBlockProgram } from "@/hooks/use-block-program";
 import { useSimLoop } from "@/hooks/use-sim-loop";
 import { useSimTelemetry } from "@/hooks/use-sim-telemetry";
 import { blocks as B, demoProgram, type BlockNode, type SerializedWorkspace } from "@/lib/blockly/interpreter";
 import type { SimTelemetry } from "@/lib/lesson";
 import { ValueWatcher } from "@/lib/sim/watch";
+import { readThemeColors, type ThemeColors } from "@/lib/theme-colors";
 import { ProgramBar } from "./ProgramBar";
 
 // World geometry (logical px, y points down).
@@ -38,6 +41,8 @@ const OBSTACLE_CM = 20;
 const CLEAR_CM = 25;
 /** The car must have turned at least this far away from the wall for the dodge to count. */
 const MIN_TURN_RAD = (35 * Math.PI) / 180;
+/** Dodges needed to pass the lesson (the HUD never shows more than this). */
+const TARGET_DODGES = 3;
 
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 const num = (n: number) => ({ shadow: B.b("math_number", { NUM: n }) });
@@ -151,12 +156,51 @@ function driveName(s: Sim) {
   return "STOP";
 }
 
-function draw(ctx: CanvasRenderingContext2D, s: Sim) {
-  ctx.clearRect(0, 0, W, H);
-  ctx.fillStyle = "#fffaf0";
+interface View {
+  /** Canvas size in CSS pixels, and the device pixel ratio it is rendered at. */
+  w: number;
+  h: number;
+  dpr: number;
+}
+
+/** Room kept free for the floating HUD (top) and controls (bottom); below 900 px the controls and the run bar stack on two rows. */
+const TOP_INSET = 136;
+const bottomInset = (width: number) => (width < 900 ? 212 : 140);
+const SIDE_INSET = 16;
+
+function draw(ctx: CanvasRenderingContext2D, s: Sim, view: View, c: ThemeColors) {
+  const { w, h, dpr } = view;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, w, h);
+  ctx.fillStyle = c.sunken;
+  ctx.fillRect(0, 0, w, h);
+
+  // Fit the arena into the free area, centred.
+  const availW = w - 2 * SIDE_INSET;
+  const availH = h - TOP_INSET - bottomInset(w);
+  const scale = Math.max(0.2, Math.min(availW / W, availH / H));
+  ctx.save();
+  ctx.translate((w - W * scale) / 2, TOP_INSET + (availH - H * scale) / 2);
+  ctx.scale(scale, scale);
+
+  // Floor with a 10 cm grid
+  ctx.fillStyle = c.canvas;
   ctx.fillRect(0, 0, W, H);
-  ctx.fillStyle = "#8d96b5";
-  ctx.strokeStyle = "#1d2b4f";
+  ctx.strokeStyle = c.line;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (let x = PX_PER_CM * 10; x < W; x += PX_PER_CM * 10) {
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, H);
+  }
+  for (let y = PX_PER_CM * 10; y < H; y += PX_PER_CM * 10) {
+    ctx.moveTo(0, y);
+    ctx.lineTo(W, y);
+  }
+  ctx.stroke();
+
+  ctx.fillStyle = c["ink-soft"];
+  ctx.strokeStyle = c.ink;
   ctx.lineWidth = 3;
   RECTS.forEach((r) => {
     ctx.fillRect(r.x, r.y, r.w, r.h);
@@ -167,7 +211,8 @@ function draw(ctx: CanvasRenderingContext2D, s: Sim) {
   const near = s.distCm < OBSTACLE_CM;
   const nx = s.car.position.x + Math.cos(s.heading) * (CAR_L / 2);
   const ny = s.car.position.y + Math.sin(s.heading) * (CAR_L / 2);
-  ctx.strokeStyle = near ? "rgba(255,107,107,0.9)" : "rgba(59,158,255,0.5)";
+  ctx.globalAlpha = near ? 0.9 : 0.5;
+  ctx.strokeStyle = near ? c.stop : c.info;
   ctx.lineWidth = 3;
   ctx.setLineDash([6, 6]);
   ctx.beginPath();
@@ -175,31 +220,27 @@ function draw(ctx: CanvasRenderingContext2D, s: Sim) {
   ctx.lineTo(s.hit.x, s.hit.y);
   ctx.stroke();
   ctx.setLineDash([]);
+  ctx.globalAlpha = 1;
 
   // Car body, wheels and the sensor "eyes" on the nose
   ctx.save();
   ctx.translate(s.car.position.x, s.car.position.y);
   ctx.rotate(s.heading);
-  ctx.fillStyle = "#1d2b4f";
+  ctx.fillStyle = c.ink;
   ctx.fillRect(-CAR_L / 2 + 6, -CAR_W / 2 - 4, 18, 6);
   ctx.fillRect(-CAR_L / 2 + 6, CAR_W / 2 - 2, 18, 6);
-  ctx.fillStyle = "#ffc83d";
-  ctx.strokeStyle = "#1d2b4f";
+  ctx.fillStyle = c.sun;
+  ctx.strokeStyle = c.ink;
   ctx.lineWidth = 3;
   ctx.fillRect(-CAR_L / 2, -CAR_W / 2, CAR_L, CAR_W);
   ctx.strokeRect(-CAR_L / 2, -CAR_W / 2, CAR_L, CAR_W);
-  ctx.fillStyle = "#fffaf0";
+  ctx.fillStyle = c.canvas;
   ctx.beginPath();
   ctx.arc(CAR_L / 2 - 4, -7, 4, 0, Math.PI * 2);
   ctx.arc(CAR_L / 2 - 4, 7, 4, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
-
-  ctx.fillStyle = "#1d2b4f";
-  ctx.font = "bold 14px sans-serif";
-  ctx.textAlign = "left";
-  ctx.fillText(`Khoảng cách: ${s.distCm.toFixed(1)} cm`, 24, 36);
-  ctx.fillText(`Đã né: ${s.avoided}`, 24, 56);
+  ctx.restore();
 }
 
 export function Lesson11Sim({
@@ -214,6 +255,8 @@ export function Lesson11Sim({
   const simRef = useRef<Sim | null>(null);
   if (!simRef.current) simRef.current = createSim();
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const viewRef = useRef<View>({ w: 0, h: 0, dpr: 1 });
+  const colorsRef = useRef<ThemeColors | null>(null);
   const touchRef = useRef(0);
   const watcher = useRef(new ValueWatcher());
   const wasRunning = useRef(false);
@@ -227,6 +270,25 @@ export function Lesson11Sim({
       onRunStart?.();
     },
   });
+  // Keep the canvas pixel size in step with its on-screen size, and read the design tokens once.
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    colorsRef.current = readThemeColors();
+    const resize = () => {
+      const dpr = Math.min(2, window.devicePixelRatio || 1);
+      const w = canvas.clientWidth;
+      const h = canvas.clientHeight;
+      canvas.width = Math.round(w * dpr);
+      canvas.height = Math.round(h * dpr);
+      viewRef.current = { w, h, dpr };
+    };
+    resize();
+    const observer = new ResizeObserver(resize);
+    observer.observe(canvas);
+    return () => observer.disconnect();
+  }, []);
+
   const outRef = useRef(program.outputs);
   outRef.current = program.outputs;
   const runningRef = useRef(program.running);
@@ -260,7 +322,8 @@ export function Lesson11Sim({
     },
     () => {
       const ctx = canvasRef.current?.getContext("2d");
-      if (ctx) draw(ctx, simRef.current!);
+      const colors = colorsRef.current;
+      if (ctx && colors && viewRef.current.w > 0) draw(ctx, simRef.current!, viewRef.current, colors);
     },
   );
 
@@ -285,44 +348,61 @@ export function Lesson11Sim({
     touchRef.current = Date.now();
   };
   return (
-    <div className="flex flex-col gap-3">
+    <ViewportChrome
+      label="Mô phỏng vật lý 2D"
+      hud={
+        <>
+          <StatTile
+            variant="onDark"
+            label="Lần né"
+            value={Math.min(s.avoided, TARGET_DODGES)}
+            unit={`/ ${TARGET_DODGES}`}
+            tone={s.avoided >= TARGET_DODGES ? "go" : "neutral"}
+            badge={s.avoided >= TARGET_DODGES ? "Đạt!" : undefined}
+          />
+          <StatTile variant="onDark" label="Va chạm" value={s.collisions} tone={s.collisions > 0 ? "alert" : "neutral"} />
+          <StatTile variant="onDark" label="Siêu âm" value={Math.round(s.distCm)} unit="cm" />
+        </>
+      }
+      overlay={
+        <>
+          <p className="max-w-full rounded-full border border-line bg-surface/90 px-4 py-1.5 text-center text-sm font-bold shadow-float backdrop-blur">
+            Thấy tường gần hơn {OBSTACLE_CM} cm — dừng, lùi nhẹ rồi xoay hướng!
+          </p>
+          <div className="flex w-full flex-wrap items-end justify-center gap-3">
+            <div
+              role="group"
+              aria-label="Lái thử"
+              className="flex items-center gap-1.5 rounded-card border border-line bg-surface/90 p-2 shadow-float backdrop-blur"
+            >
+              <Button variant="soft" size="icon-lg" aria-label="Tiến" onClick={() => manual(60, 60)}><ArrowUp className="h-5 w-5" aria-hidden /></Button>
+              <Button variant="soft" size="icon-lg" aria-label="Lùi" onClick={() => manual(-60, -60)}><ArrowDown className="h-5 w-5" aria-hidden /></Button>
+              <Button variant="soft" size="icon-lg" aria-label="Xoay trái" onClick={() => manual(-60, 60)}><ArrowLeft className="h-5 w-5" aria-hidden /></Button>
+              <Button variant="soft" size="icon-lg" aria-label="Xoay phải" onClick={() => manual(60, -60)}><ArrowRight className="h-5 w-5" aria-hidden /></Button>
+              <Button variant="soft" size="icon-lg" aria-label="Dừng" onClick={() => manual(0, 0)}><Square className="h-5 w-5" aria-hidden /></Button>
+              <Button
+                variant="soft"
+                size="icon-lg"
+                aria-label="Đặt lại xe"
+                onClick={() => {
+                  resetCar(s);
+                  touchRef.current = Date.now();
+                }}
+              >
+                <RotateCcw className="h-5 w-5" aria-hidden />
+              </Button>
+            </div>
+            <ProgramBar variant="floating" program={program} label="Chạy chương trình của con" demoLabel="Xem xe mẫu chạy" />
+          </div>
+        </>
+      }
+    >
       <canvas
         ref={canvasRef}
-        width={W}
-        height={H}
-        className="w-full rounded-2xl border-2 border-ink/10"
+        className="block h-full w-full"
         role="img"
         aria-label="Sa bàn mê cung nhìn từ trên xuống, xe tự hành dùng cảm biến siêu âm ở mũi xe để né tường"
       />
-      <p className="rounded-2xl bg-sky/10 p-3 text-center font-extrabold">
-        Thấy tường gần hơn <span className="text-sky">{OBSTACLE_CM} cm</span> — dừng, lùi nhẹ rồi xoay hướng!
-      </p>
-      <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-sun/20 p-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="font-bold">Lái thử:</span>
-          <Button variant="outline" size="icon" aria-label="Tiến" onClick={() => manual(60, 60)}><ArrowUp className="h-4 w-4" aria-hidden /></Button>
-          <Button variant="outline" size="icon" aria-label="Lùi" onClick={() => manual(-60, -60)}><ArrowDown className="h-4 w-4" aria-hidden /></Button>
-          <Button variant="outline" size="icon" aria-label="Xoay trái" onClick={() => manual(-60, 60)}><ArrowLeft className="h-4 w-4" aria-hidden /></Button>
-          <Button variant="outline" size="icon" aria-label="Xoay phải" onClick={() => manual(60, -60)}><ArrowRight className="h-4 w-4" aria-hidden /></Button>
-          <Button variant="outline" size="icon" aria-label="Dừng" onClick={() => manual(0, 0)}><Square className="h-4 w-4" aria-hidden /></Button>
-        </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => {
-            resetCar(s);
-            touchRef.current = Date.now();
-          }}
-        >
-          <RotateCcw className="h-4 w-4" aria-hidden /> Đặt lại xe
-        </Button>
-      </div>
-      <div className="grid grid-cols-3 gap-2 text-center font-bold">
-        <p className="rounded-2xl bg-mint/20 p-2">Lần né: {s.avoided} / 3</p>
-        <p className="rounded-2xl bg-coral/15 p-2">Va chạm: {s.collisions}</p>
-        <p className="rounded-2xl bg-sky/10 p-2">Siêu âm: {Math.round(s.distCm)} cm</p>
-      </div>
-      <ProgramBar program={program} label="Thả xe chạy" />
-    </div>
+    </ViewportChrome>
   );
 }

@@ -22,11 +22,14 @@ export function TutorChat({
   state,
   event,
   greeting,
+  onTutorReply,
 }: {
   state: LessonState;
   event: TutorEvent | null;
   /** The lesson's `aiTutor.initialGreetingVi`. */
   greeting: string;
+  /** Called every time the tutor adds a reply (not for the greeting), e.g. to show an unread dot. */
+  onTutorReply?: () => void;
 }) {
   const [messages, setMessages] = useState<Message[]>([{ id: 0, role: "tutor", text: greeting }]);
   const [loading, setLoading] = useState(false);
@@ -39,6 +42,8 @@ export function TutorChat({
   const nextId = useRef(1);
   const handledEvent = useRef(0);
   const inFlight = useRef(false);
+  const replyRef = useRef(onTutorReply);
+  replyRef.current = onTutorReply;
 
   const ask = async (trigger: TutorTrigger, message?: string) => {
     if (inFlight.current) return;
@@ -61,6 +66,7 @@ export function TutorChat({
       setMessages((m) => [...m, { id: nextId.current++, role: "tutor", text: reply }]);
       setLoading(false);
       inFlight.current = false;
+      replyRef.current?.();
     }
   };
 
@@ -77,27 +83,27 @@ export function TutorChat({
   }, [messages, loading]);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col rounded-2xl bg-mint/10 p-3">
+    <div className="flex min-h-0 flex-1 flex-col">
       <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto" aria-live="polite">
         <div ref={listRef} className="flex flex-col gap-2">
           {messages.map((m) => (
             <div key={m.id} className={cn("flex items-start gap-2", m.role === "student" && "flex-row-reverse")}>
-              {m.role === "tutor" && <Bot className="mt-1 h-7 w-7 shrink-0 text-mint" aria-hidden />}
+              {m.role === "tutor" && <Bot className="mt-1 h-7 w-7 shrink-0 text-ink" aria-hidden />}
               <p
                 className={cn(
-                  "max-w-[85%] rounded-2xl px-3 py-2 text-sm font-semibold",
-                  m.role === "tutor" ? "bg-white" : "bg-sky text-white",
+                  "max-w-[85%] rounded-control px-3 py-2 text-[15px] font-medium",
+                  m.role === "tutor" ? "bg-sunken" : "bg-ink text-white",
                 )}
               >
                 {m.text}
               </p>
             </div>
           ))}
-          {loading && <p className="pl-9 text-sm text-ink/60">Bạn đồng hành đang nghĩ…</p>}
+          {loading && <p className="pl-9 text-sm text-ink-soft">Bạn đồng hành đang nghĩ…</p>}
         </div>
       </div>
       <form
-        className="mt-2 flex gap-2"
+        className="mt-3 flex gap-2"
         onSubmit={(e) => {
           e.preventDefault();
           const value = text.trim();
@@ -106,7 +112,7 @@ export function TutorChat({
           void ask("chat", value);
         }}
       >
-        <Button type="button" variant="outline" onClick={() => void ask("hint")} disabled={loading}>
+        <Button type="button" variant="soft" size="lg" onClick={() => void ask("hint")} disabled={loading}>
           <Lightbulb className="h-4 w-4" aria-hidden /> Gợi ý
         </Button>
         <input
@@ -114,9 +120,9 @@ export function TutorChat({
           onChange={(e) => setText(e.target.value)}
           maxLength={300}
           placeholder="Con muốn hỏi gì nào?"
-          className="h-11 min-w-0 flex-1 rounded-2xl border-2 border-ink/15 bg-white px-3 text-sm"
+          className="h-12 min-w-0 flex-1 rounded-control border border-line bg-sunken px-3 text-[15px]"
         />
-        <Button type="submit" size="icon" disabled={loading} aria-label="Gửi">
+        <Button type="submit" variant="solid" size="icon-lg" disabled={loading} aria-label="Gửi">
           <Send className="h-5 w-5" />
         </Button>
       </form>

@@ -53,9 +53,12 @@ const TOKEN_LABEL_VI: Record<string, string> = {
 
 const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
 
+/** Frames of the sample program are for watching only: they never count toward a lesson. */
+export const isGradedFrame = (f: TelemetryFrame) => f.source !== "demo";
+
 function toRows(history: TelemetryFrame[]): Row[] {
   const rows: Row[] = [];
-  for (const f of history) if (f.data) rows.push({ t: f.receivedAt, d: f.data });
+  for (const f of history) if (f.data && isGradedFrame(f)) rows.push({ t: f.receivedAt, d: f.data });
   return rows;
 }
 
@@ -180,9 +183,12 @@ function evaluateNumeric(win: WinCondition, rows: Row[]): EvalResult {
 export function evaluateWinCondition(win: WinCondition, history: TelemetryFrame[]): EvalResult {
   const rows = toRows(history);
   if (rows.length === 0) {
+    const onlyDemo = history.length > 0 && history.every((f) => !isGradedFrame(f));
     return result({
       status: "waiting",
-      messageVi: "Chưa có dữ liệu. Con hãy kết nối mạch hoặc bật chế độ giả lập nhé!",
+      messageVi: onlyDemo
+        ? "Đây là chương trình mẫu để con xem thôi. Con hãy tự ghép khối lệnh rồi chạy nhé!"
+        : "Chưa có dữ liệu. Con hãy kết nối mạch hoặc bật chế độ giả lập nhé!",
       steps: Array.isArray(win.targetValue) && typeof win.targetValue[0] === "string"
         ? (win.targetValue as string[]).map((token) => ({ token, label: TOKEN_LABEL_VI[token] ?? token, done: false }))
         : [],

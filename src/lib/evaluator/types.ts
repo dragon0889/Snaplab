@@ -1,6 +1,6 @@
-import type { TelemetryFrame } from "@/lib/hardware";
+import type { FrameSource, TelemetryFrame } from "@/lib/hardware";
 
-export type { TelemetryFrame };
+export type { FrameSource, TelemetryFrame };
 
 export type EvalStatus = "waiting" | "in_progress" | "passed";
 

@@ -44,6 +44,9 @@ export function BlocklyWorkspace({
     registerSnapLabBlocks();
     const storageKey = `snaplab:${lessonId}:blocks`;
     const ws = Blockly.inject(host, {
+      // Self-hosted icons (public/blockly-media): the default CDN is slow or blocked on school networks.
+      media: "/blockly-media/",
+      sounds: false,
       toolbox: buildToolbox(blockTypes),
       renderer: "zelos",
       trashcan: true,

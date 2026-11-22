@@ -1,7 +1,7 @@
 import { getLessonById } from "@/lib/lessons-data/curriculum";
 import type { BlockParam, BlocklySummary, LessonState, SimOutcome, TutorRequest, WorkspaceTab } from "@/lib/lesson";
 
-const TABS: WorkspaceTab[] = ["sim", "lego3d", "wiring", "blockly"];
+const TABS: WorkspaceTab[] = ["intro", "sim", "lego3d", "wiring", "blockly"];
 const TYPE_RE = /^[a-z_0-9]{1,48}$/;
 
 const num = (v: unknown, min: number, max: number): number | null =>
