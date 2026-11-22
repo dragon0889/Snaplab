@@ -1,0 +1,26 @@
+# Caddy obtains and renews the Let's Encrypt certificate for $DOMAIN by itself (ports 80 and 443 must be open).
+
+# www.<domain> permanently redirects to the bare domain (needs its own A record).
+www.{$DOMAIN} {
+	redir https://{$DOMAIN}{uri} permanent
+}
+
+{$DOMAIN} {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		-Server
+	}
+
+	# The app never needs big request bodies (the tutor API accepts < 8 KB).
+	request_body {
+		max_size 64KB
+	}
+
+	reverse_proxy app:3000 {
+		# Overwrite, never append: a client must not be able to forge its own address.
+		header_up X-Real-IP {remote_host}
+		header_up X-Forwarded-For {remote_host}
+	}
+}
