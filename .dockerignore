@@ -6,7 +6,6 @@ node_modules
 !.env.example
 *.tsbuildinfo
 docs
-.agents
 .claude
 Dockerfile
 docker-compose.yml
