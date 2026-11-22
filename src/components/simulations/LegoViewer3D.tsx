@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
-import { ContactShadows, Environment, OrbitControls } from "@react-three/drei";
+import { ContactShadows, OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { motion } from "motion/react";
@@ -164,7 +164,8 @@ export function LegoViewer3D({ initialStep = 1, onStepChange }: { initialStep?: 
         <Canvas shadows dpr={[1, 2]} camera={{ position: [11, 7, 13], fov: 40 }}>
           <ambientLight intensity={0.7} />
           <directionalLight position={[5, 8, 5]} intensity={1.4} castShadow />
-          <Environment preset="city" />
+          {/* Local sky/ground light instead of drei's <Environment preset>, which downloads an HDR from a CDN that the CSP blocks. */}
+          <hemisphereLight args={["white", "tan", 0.9]} />
           <Model current={step} />
           <ContactShadows position={[0, -0.01, 0]} opacity={0.35} scale={14} blur={2.5} far={4} />
           <OrbitControls enablePan={false} enableDamping minDistance={7} maxDistance={24} maxPolarAngle={Math.PI / 2 - 0.05} />

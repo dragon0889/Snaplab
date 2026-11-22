@@ -2,6 +2,8 @@
 
 import dynamic from "next/dynamic";
 import { AnimatePresence, motion } from "motion/react";
+import { Button } from "@/components/ui/button";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { ViewportChrome } from "@/components/ui/viewport-chrome";
 import type { LessonConfig, SimulationType } from "@/lib/lessons-data/curriculum";
 import type { BlocklySummary, SimOutcome, SimTelemetry, WorkspaceTab } from "@/lib/lesson";
@@ -75,6 +77,19 @@ function ComingSoon({ title, note }: { title: string; note: string }) {
   );
 }
 
+/** Shown in place of a scene that failed to load (no WebGL, blocked download, ...). */
+function SceneFailed({ onRetry }: { onRetry: () => void }) {
+  return (
+    <div className="grid h-full min-h-[240px] place-items-center rounded-card border border-dashed border-line bg-surface p-6 text-center">
+      <div className="flex flex-col items-center gap-3">
+        <p className="font-display text-xl font-extrabold">Chưa tải được mô hình 3D</p>
+        <p className="text-[15px] text-ink-soft">Con thử tải lại nhé. Nếu vẫn chưa được, nhờ thầy cô kiểm tra trình duyệt giúp con.</p>
+        <Button variant="solid" onClick={onRetry}>Thử lại</Button>
+      </div>
+    </div>
+  );
+}
+
 interface BlockSimProps {
   program: SerializedWorkspace | null;
   onTelemetry?: (data: SimTelemetry) => void;
@@ -131,12 +146,19 @@ export function LessonStage({ lesson, step, onSimResult, onSimTelemetry, onSimRu
   const sceneLabel = isSim ? SIM_LABEL[lesson.simulationType] : STEP_SCENE_LABEL[step];
   const blockSim = BLOCK_SIMS[lesson.id]?.type === lesson.simulationType ? BLOCK_SIMS[lesson.id] : null;
 
+  const guard = (node: React.ReactNode) => (
+    <ErrorBoundary key={step} fallback={(reset) => <SceneFailed onRetry={reset} />}>
+      {node}
+    </ErrorBoundary>
+  );
+
   const content = (() => {
     if (isSim) {
       if (blockSim) {
         const { Component } = blockSim;
         // The "Hiểu" step only shows the sample car: the student's blocks are kept out of it on purpose.
-        return <Component program={step === "intro" ? null : program} onTelemetry={onSimTelemetry} onRunStart={onSimRunStart} />;
+        const sim = <Component program={step === "intro" ? null : program} onTelemetry={onSimTelemetry} onRunStart={onSimRunStart} />;
+        return lesson.simulationType === "r3f-3d" ? guard(sim) : sim;
       }
       if (HAS_BARRIER_BUILD(lesson)) {
         return <MatterSimulation onResult={onSimResult} onTelemetry={onSimTelemetry} onRunStart={onSimRunStart} />;
@@ -145,7 +167,7 @@ export function LessonStage({ lesson, step, onSimResult, onSimTelemetry, onSimRu
     }
     if (step === "lego3d") {
       return HAS_BARRIER_BUILD(lesson) ? (
-        <LegoViewer3D onStepChange={onLegoStep} />
+        guard(<LegoViewer3D onStepChange={onLegoStep} />)
       ) : (
         <ComingSoon title="Lắp ráp LEGO 3D" note={`Mô hình ${lesson.legoStepCount ?? "?"} bước của bài này đang được xây dựng.`} />
       );
